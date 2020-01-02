@@ -38,6 +38,33 @@
 						</div>
 					</div>
 				</b-card>
+
+				<b-card header="Link to dnd beyond">
+					<p>Link this character to a dnd beyond character sheet, so it is less work for you.<br/> You can always revert this and you also keep control yourself.</p>
+					
+					<label>Enter the character ID 9626439</label>
+					<b-form inline>
+						<b-form-input type="text" autocomplete="off"  class="mr-2 mt-2" v-model="beyondID" placeholder="beyond character id" />
+
+						<a class="btn mt-2" variant="primary" @click="find_beyond()">Find character</a>
+					</b-form>
+					<!-- <div>{{beyondJSon}}</div> -->
+					<div v-for="(value, key) in beyondCharacter">
+						{{key}}: {{value}}
+					</div>
+					<!-- <p v-if="foundUser === false && findUser != ''" class="red">User {{ findUser }} not found</p>
+					<div v-else-if="foundUser && findUser != ''">
+						<hr>
+						<p> 
+							Username: {{ foundUser.username }}<br/>
+							Email: {{ foundUser.email }}
+						</p>
+						<button class="btn btn-block mt-4 bg-green" @click="confirmGiveControl()">
+							Give control to {{ foundUser.username }}
+						</button>
+					</div> -->
+
+				</b-card>
 				
 				<b-card header="Basic Info">
 					<b-row>
@@ -245,6 +272,7 @@
 	import OverEncumbered from '@/components/OverEncumbered.vue'
 	import { mapGetters } from 'vuex'
 	import { db } from '@/firebase'
+	import axios from 'axios'
 
 	export default {
 		name: 'Players',
@@ -260,6 +288,9 @@
 				controlUser: undefined,
 				findUser: undefined,
 				foundUser: undefined,
+				beyondID: undefined,
+				beyondJSon: undefined,
+				beyondCharacter: undefined,
 			}
 		},
 		firebase() {
@@ -356,6 +387,44 @@
 				db.ref(`character_control/${this.player.control}/${this.playerId}`).remove();
 				db.ref(`players/${this.userId}/${this.playerId}/control`).remove();
 				this.controlUser = undefined
+			},
+			async find_beyond() {
+				console.log(this.beyondID)
+				
+				let config = {
+					headers: {'Accept': '*/*',
+										'Content-Type': 'application/json'}
+				}
+				axios.get(`https://api.codetabs.com/v1/proxy?quest=https://www.dndbeyond.com/character/${this.beyondID}/json`)
+					.then(response => {
+						let json = response.data;
+						// this.beyondJSon = json;
+
+						let character = {
+							'name': json.name,
+							'currentXp': json.currentXp,
+							'baseHP': json.baseHitPoints,
+							'str': json.stats[0].value,
+							'dex': json.stats[1].value,
+							'con': json.stats[2].value,
+							'int': json.stats[3].value,
+							'wis': json.stats[4].value,
+							'cha': json.stats[5].value,
+							'proficiencies': [],
+						}
+
+						for (let subj in json.modifiers) {
+							for (let i in json.modifiers[subj]) {
+								let mod = json.modifiers[subj][i]
+								console.log(subj, mod)
+								if (mod.type == "proficiency") {
+									character.proficiencies.push(mod.subType)
+								}
+							}
+						}
+
+						this.beyondCharacter = character
+					})
 			},
 			addPlayer() {
 				if(Object.keys(this.players).length >= this.tier.benefits.players) {
