@@ -270,6 +270,8 @@
 
 <script>
 	import OverEncumbered from '@/components/OverEncumbered.vue'
+	import { experience } from '@/mixins/experience.js'
+	import { general } from '@/mixins/general.js'
 	import { mapGetters } from 'vuex'
 	import { db } from '@/firebase'
 	import axios from 'axios'
@@ -282,6 +284,7 @@
 		components: {
 			OverEncumbered,
 		},
+		mixins: [experience, general],
 		data() {
 			return {
 				playerId: this.$route.params.id,
@@ -391,53 +394,48 @@
 			find_beyond() {
 				
 				let skills = {
-					'acrobatics': 'dex',
-					'animal-handling': 'wis',
-					'arcana': 'int',
-					'athletics': 'str',
-					'deception': 'cha',
-					'history': 'int',
-					'insight': 'wis',
-					'intimidation': 'cha',
-					'investigation': 'int',
-					'medicine': 'int',
-					'nature': 'int',
-					'perception': 'wis',
-					'performance': 'cha',
-					'persuasion': 'cha',
-					'religion': 'int',
-					'sleight-of-hand': 'dex',
-					'stealth': 'dex',
-					'survival': 'wis'
+					'acrobatics': 'dexterity',
+					'animal-handling': 'wisdom',
+					'arcana': 'intelligence',
+					'athletics': 'strength',
+					'deception': 'charisma',
+					'history': 'intelligence',
+					'insight': 'wisdom',
+					'intimidation': 'charisma',
+					'investigation': 'intelligence',
+					'medicine': 'wisdom',
+					'nature': 'intelligence',
+					'perception': 'wisdom',
+					'performance': 'charisma',
+					'persuasion': 'charisma',
+					'religion': 'intelligence',
+					'sleight-of-hand': 'dexterity',
+					'stealth': 'dexterity',
+					'survival': 'wisdom'
 				}
 				
 				axios.get(`https://api.codetabs.com/v1/proxy?quest=https://www.dndbeyond.com/character/${this.beyondID}/json`)
 					.then(response => {
 						let json = response.data;
-						// this.beyondJSon = json;
 
 						let character = {
 							'name': json.name,
 							'currentXp': json.currentXp,
+							'level': this.calculatedLevel(json.currentXp),
+							'proficiency': this.returnProficiency(this.calculatedLevel(json.currentXp)),
 							'baseHP': json.baseHitPoints,
-							'str': {'val': json.stats[0].value, 
-											'mod': Math.floor((json.stats[0].value - 10)/2)},
-							'dex': {'val': json.stats[1].value, 
-											'mod': Math.floor((json.stats[1].value - 10)/2)},
-							'con': {'val': json.stats[2].value, 
-											'mod': Math.floor((json.stats[2].value - 10)/2)},
-							'int': {'val': json.stats[3].value, 
-											'mod': Math.floor((json.stats[3].value - 10)/2)},
-							'wis': {'val': json.stats[4].value, 
-											'mod': Math.floor((json.stats[4].value - 10)/2)},
-							'cha': {'val': json.stats[5].value, 
-											'mod': Math.floor((json.stats[5].value - 10)/2)},
+							
+							'strength': json.stats[0].value,
+							'dexterity': json.stats[1].value,
+							'constitution': json.stats[2].value,
+							'intelligence': json.stats[3].value,
+							'wisdom': json.stats[4].value,
+							'charisma': json.stats[5].value,
+							
 							'proficiencies': [],
 							'languages': [],
 							'bonusAC': 0,
 						}
-
-
 
 
 						// Walk through all character modifiers
@@ -451,22 +449,28 @@
 								if (mod.type == 'language') {
 									character.languages.push(mod.subType);	
 								}
-								if (mod.type == 'bonus' && mod.subType == 'armor-class') {
-									character.bonusAC += mod.value;
+								if (mod.type == 'bonus') {
+									if (mod.subType.includes('-score')) {
+										let ability = mod.subType.replace('-score', '')
+										character[ability] += mod.value
+									}
+									if (mod.subType == 'armor-class') {
+										character.bonusAC += mod.value;
+									}
 								}
 							}
 						}
 
 						// Store character skill scores (with prof)
 						for (let skill in skills) {
-							console.log(skill, skills[skill], character[skills[skill]])
-							let skill_val = character[skills[skill]].mod;
+							let skill_val = this.calcMod(character[skills[skill]]);
 							if (character.proficiencies.includes(skill)) {
-								skill_val += 2;
+								skill_val += character.proficiency;
 							}
 							character[skill] = skill_val
 						}
 
+						character.hitPoints = character.baseHP + character.level * this.calcMod(character.constitution);
 						this.beyondCharacter = character
 					})
 			},
