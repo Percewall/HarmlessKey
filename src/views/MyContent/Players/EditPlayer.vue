@@ -388,13 +388,29 @@
 				db.ref(`players/${this.userId}/${this.playerId}/control`).remove();
 				this.controlUser = undefined
 			},
-			async find_beyond() {
-				console.log(this.beyondID)
+			find_beyond() {
 				
-				let config = {
-					headers: {'Accept': '*/*',
-										'Content-Type': 'application/json'}
+				let skills = {
+					'acrobatics': 'dex',
+					'animal-handling': 'wis',
+					'arcana': 'int',
+					'athletics': 'str',
+					'deception': 'cha',
+					'history': 'int',
+					'insight': 'wis',
+					'intimidation': 'cha',
+					'investigation': 'int',
+					'medicine': 'int',
+					'nature': 'int',
+					'perception': 'wis',
+					'performance': 'cha',
+					'persuasion': 'cha',
+					'religion': 'int',
+					'sleight-of-hand': 'dex',
+					'stealth': 'dex',
+					'survival': 'wis'
 				}
+				
 				axios.get(`https://api.codetabs.com/v1/proxy?quest=https://www.dndbeyond.com/character/${this.beyondID}/json`)
 					.then(response => {
 						let json = response.data;
@@ -404,23 +420,51 @@
 							'name': json.name,
 							'currentXp': json.currentXp,
 							'baseHP': json.baseHitPoints,
-							'str': json.stats[0].value,
-							'dex': json.stats[1].value,
-							'con': json.stats[2].value,
-							'int': json.stats[3].value,
-							'wis': json.stats[4].value,
-							'cha': json.stats[5].value,
+							'str': {'val': json.stats[0].value, 
+											'mod': Math.floor((json.stats[0].value - 10)/2)},
+							'dex': {'val': json.stats[1].value, 
+											'mod': Math.floor((json.stats[1].value - 10)/2)},
+							'con': {'val': json.stats[2].value, 
+											'mod': Math.floor((json.stats[2].value - 10)/2)},
+							'int': {'val': json.stats[3].value, 
+											'mod': Math.floor((json.stats[3].value - 10)/2)},
+							'wis': {'val': json.stats[4].value, 
+											'mod': Math.floor((json.stats[4].value - 10)/2)},
+							'cha': {'val': json.stats[5].value, 
+											'mod': Math.floor((json.stats[5].value - 10)/2)},
 							'proficiencies': [],
+							'languages': [],
+							'bonusAC': 0,
 						}
 
+
+
+
+						// Walk through all character modifiers
 						for (let subj in json.modifiers) {
 							for (let i in json.modifiers[subj]) {
-								let mod = json.modifiers[subj][i]
-								console.log(subj, mod)
+								let mod = json.modifiers[subj][i];
+								// Set character proficiencies
 								if (mod.type == "proficiency") {
-									character.proficiencies.push(mod.subType)
+									character.proficiencies.push(mod.subType);
+								}
+								if (mod.type == 'language') {
+									character.languages.push(mod.subType);	
+								}
+								if (mod.type == 'bonus' && mod.subType == 'armor-class') {
+									character.bonusAC += mod.value;
 								}
 							}
+						}
+
+						// Store character skill scores (with prof)
+						for (let skill in skills) {
+							console.log(skill, skills[skill], character[skills[skill]])
+							let skill_val = character[skills[skill]].mod;
+							if (character.proficiencies.includes(skill)) {
+								skill_val += 2;
+							}
+							character[skill] = skill_val
 						}
 
 						this.beyondCharacter = character
