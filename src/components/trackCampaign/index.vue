@@ -69,61 +69,70 @@
 
 			<!-- ACTIVE ENCOUNTER -->
 			<template v-else>
-				<Turns 
-					:encounter="encounter" 
-					:current="_non_hidden_targets[0]"
-					:entities_len="Object.keys(_turnCount).length"
+				<template v-if="!encounter.battlemap">
+					<Turns 
+						:encounter="encounter" 
+						:current="_non_hidden_targets[0]"
+						:entities_len="Object.keys(_turnCount).length"
+						:turn="turn"
+						:campPlayers="campaign.players"
+					/>
+					<div class="container-fluid">
+						<div class="container entities">
+
+							<!-- LAST ROLL -->
+							<div v-if="encounter.lastRoll" class="lastRoll text-center">
+								<i class="fas fa-dice-d20"></i> 
+
+								<!-- To hit -->
+								<span v-if="encounter.lastRoll.toHitTotal">
+									To hit: 
+									<span v-if="encounter.lastRoll.toHitTotal == 'Natural 1' || encounter.lastRoll.toHitTotal == 'Natural 20'"
+										:class="{ 'red': encounter.lastRoll.toHitTotal == 'Natural 1', 'green': encounter.lastRoll.toHitTotal == 'Natural 20' }">
+										{{ encounter.lastRoll.toHitTotal }}
+									</span>
+									<template v-else>
+										<span v-if="encounter.lastRoll.hitMod">
+											{{ encounter.lastRoll.toHit }} + {{ encounter.lastRoll.hitMod }} =
+										</span>
+										<span class="blue">{{ encounter.lastRoll.toHitTotal }}</span>
+									</template>.
+								</span>
+
+								<!-- Open Roll -->
+								<span v-if="encounter.lastRoll.damageTotal">
+									Damage: 
+									<span v-if="encounter.lastRoll.damageMod">
+										{{ encounter.lastRoll.damage }} + {{ encounter.lastRoll.damageMod }} =
+									</span>
+									<span class="red">{{ encounter.lastRoll.damageTotal }}</span>.
+								</span>
+							</div>
+
+							<b-row>
+								<b-col>
+									<Initiative 
+										:encounter="encounter" 
+										:targets="_non_hidden_targets"
+										:allEntities="_turnCount"
+										:turn="turn"
+										:campPlayers="campaign.players"
+									/>
+								</b-col>
+								<b-col md="3" v-if="playerSettings.meters === undefined">
+									<Meters :entities="encounter.entities" />
+								</b-col>
+							</b-row>
+						</div>
+					</div>
+				</template>
+				<Battlemap v-else 
+					:encounter="encounter"
+					:targets="_non_hidden_targets"
+					:allEntities="_turnCount"
 					:turn="turn"
 					:campPlayers="campaign.players"
 				/>
-				<div class="container-fluid">
-					<div class="container entities">
-
-						<!-- LAST ROLL -->
-						<div v-if="encounter.lastRoll" class="lastRoll text-center">
-							<i class="fas fa-dice-d20"></i> 
-
-							<!-- To hit -->
-							<span v-if="encounter.lastRoll.toHitTotal">
-								To hit: 
-								<span v-if="encounter.lastRoll.toHitTotal == 'Natural 1' || encounter.lastRoll.toHitTotal == 'Natural 20'"
-									:class="{ 'red': encounter.lastRoll.toHitTotal == 'Natural 1', 'green': encounter.lastRoll.toHitTotal == 'Natural 20' }">
-									{{ encounter.lastRoll.toHitTotal }}
-								</span>
-								<template v-else>
-									<span v-if="encounter.lastRoll.hitMod">
-										{{ encounter.lastRoll.toHit }} + {{ encounter.lastRoll.hitMod }} =
-									</span>
-									<span class="blue">{{ encounter.lastRoll.toHitTotal }}</span>
-								</template>.
-							</span>
-
-							<!-- Open Roll -->
-							<span v-if="encounter.lastRoll.damageTotal">
-								Damage: 
-								<span v-if="encounter.lastRoll.damageMod">
-									{{ encounter.lastRoll.damage }} + {{ encounter.lastRoll.damageMod }} =
-								</span>
-								<span class="red">{{ encounter.lastRoll.damageTotal }}</span>.
-							</span>
-						</div>
-
-						<b-row>
-							<b-col>
-								<Initiative 
-									:encounter="encounter" 
-									:targets="_non_hidden_targets"
-									:allEntities="_turnCount"
-									:turn="turn"
-									:campPlayers="campaign.players"
-								/>
-							</b-col>
-							<b-col md="3" v-if="playerSettings.meters === undefined">
-								<Meters :entities="encounter.entities" />
-							</b-col>
-						</b-row>
-					</div>
-				</div>
 			</template>
 		</div>
 	</template>
@@ -146,16 +155,17 @@
 </template>
 
 <script>
-	import _ from 'lodash'
-	import { db } from '@/firebase'
-	import { general } from '@/mixins/general.js'
+	import _ from 'lodash';
+	import { db } from '@/firebase';
+	import { general } from '@/mixins/general.js';
 
-	import Follow from '@/components/trackCampaign/Follow.vue'
-	import Rewards from '@/components/trackCampaign/Rewards.vue'
-	import Turns from '@/components/trackCampaign/Turns.vue'
-	import Initiative from '@/components/trackCampaign/Initiative.vue'
-	import Meters from '@/components/trackCampaign/Meters.vue'
-	import CampaignOverview from '@/components/trackCampaign/CampaignOverview.vue'
+	import Follow from '@/components/trackCampaign/Follow.vue';
+	import Rewards from '@/components/trackCampaign/Rewards.vue';
+	import Turns from '@/components/trackCampaign/Turns.vue';
+	import Initiative from '@/components/trackCampaign/Initiative.vue';
+	import Meters from '@/components/trackCampaign/Meters.vue';
+	import CampaignOverview from '@/components/trackCampaign/CampaignOverview.vue';
+	import Battlemap from '@/components/trackCampaign/Battlemap.vue';
 
 	export default {
 		name: 'app',
@@ -167,6 +177,7 @@
 			Initiative,
 			Meters,
 			CampaignOverview,
+			Battlemap
 		},
 		metaInfo: {
 			title: 'Harmless Key'
