@@ -187,8 +187,8 @@
 					title="Desciption"
 					class="form-control mb-2"
 					data-vv-as="Desciption"
-					v-validate="'required|max:100'"
-					maxlength="101"
+					v-validate="'required|max:1000'"
+					maxlength="1001"
 					@change="$forceUpdate()"></b-form-textarea>
 				<p class="validate red" v-if="errors.has('description')">{{ errors.first('description') }}</p>
 			</b-col>
